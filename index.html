@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>Programación funcional sin pretensiones</title>
+    <script src="remark-0.14.0.min.js" type="text/javascript"> </script>
+    <style type="text/css" media="screen">
+      @import url(//fonts.googleapis.com/css?family=Droid+Serif);
+      @import url(//fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+
+      /*body { font-family: 'Droid Serif'; }*/
+      body { font-family: 'Helvetica'; }
+      h1, h2, h3 {
+        /*font-family: 'Yanone Kaffeesatz';*/
+        /*font-family: 'Menlo, mono'*/
+        font-weight: 400;
+        margin-bottom: 0;
+        margin-top: 10px;
+      }
+      h1 { font-size: 3.5em; }
+      h2 { font-size: 3em; }
+      h3 { font-size: 1.6em; }
+      .inverse {
+        background: #272822;
+        color: #777872;
+        text-shadow: 0 0 20px #333;
+      }
+      .inverse h1, .inverse h2 {
+        color: #f3f3f3;
+        line-height: 1.1em;
+      }
+
+      img {
+        max-width: 100%;
+        max-height: 60%;
+      }
+
+      pre {
+        border-left: 0.4em solid #d7d7d7;
+        padding: 1em !important;
+      }
+      code {
+        background: transparent !important;
+      }
+      a {
+        color: #F92672;
+        text-decoration: none;
+      }
+      .task {
+        float: right;
+        font-size: 0.9em;
+        padding-top: 0.6em;
+      }
+      .task a {
+        color: #080;
+        text-decoration: none;
+      }
+      .right {
+        float: right;
+        margin-left: 1em;
+      }
+      .pushdown {
+        margin-top: 12em;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+class: middle, inverse
+
+# Functional Ruby and the the (big) dependency diet
+
+### by [@davidpelaez](http://twitter.com/davidpelaez)
+
+---
+class: middle
+
+## Context
+
+- Originally a designer.
+- Co-founder at Vlip.
+- Increasingly frustrated with Ruby.
+
+???
+
+Thanks. What I've done and how I came here.
+
+---
+
+class: middle
+
+- We trade speed for dependencies
+- Runtime errors are a fundamental part of Ruby
+- Ruby is a mix both functional-ish and object oriented
+- Sometimes we push testing too far.
+
+???
+
+- We can agree on some things.
+- I have very strong preferences from my experiences.
+- But diversity helps.
+- I care about the attitude we need to improve code.
+
+---
+
+class: middle
+
+# What I'll try to lure you into:
+
+- Reusing basic gems rather than large dependencies in order to have less code for faster boot time, testing and performance.
+
+- Keep runtime errors in control not only through testing but also by:
+  * being explicit about the posibility of errors
+  * writing in a way where top down reading is easy
+  * enforcing a simple rule taken from math mixed with lambdas
+
+???
+
+Ruby has overcome many issues, but I'll try to show another angle to architecture.
+There are many ways, as long as you approach better code in a concious the how matters less.
+
+---
+class: middle
+
+## Agenda
+
+- A minor review of useful language constructs.
+- Letting go of unexceptional exceptions.
+- Enhancing mental clarity with bottom up code.
+
+---
+class: middle
+
+## Impostor disclosure
+
+- I lack all credentials to present "functional" in an educated manner.
+- I know just enough to make it work and perceive the benefits.
+
+---
+class: middle
+
+# The small and powerful enough functional constructs of Ruby
+
+The simplest way to express transformations.
+
+```ruby
+# A simple lambda taking one parameter
+validator = -> password { password == 's3cr3t' }
+validator.call('something') # false
+
+# A lambda with named attributes.
+# You must pass all of them and no extras.
+# Avoids a lot of errors.
+name_formatter = -> name:, surname: { "#{surname}, #{name}" }
+name_formatter.call name: 'David', surname: 'Peláez'
+# Peláez, David
+```
+
+???
+
+Proc and lambdas and blocks are not the same. But keep it simple. Use the arrow syntax.
+Why is this useful? The express transformation. Computation is about transformation.
+
+---
+
+class: middle
+
+- If you alway return the same result for the same input you can make easy unit tests.
+- Be explicit about depedencies on input values instead of contextual values.
+- Test input -> output expectations for the function alone.
+- Don't initialize/setup attibutes or calculate instance variables if possible.
+
+???
+
+They help to maintain purity in functions and being explicit. It's weird but interesting. Containing things in a block of code helps being aware of the types of things.
+
+---
+
+class: middle
+
+### Seen this?
+
+```ruby
+NoMethodError: undefined method `something' for nil:NilClass
+```
+
+Passing the wrong value is different than forgetting about the need for the value.
+
+???
+
+Consider errors on time. Being explicit and clear will help a lot. Callbacks and hidden code you don't know if it'll run will hunt you. Subtle differences can matter a lot.
+---
+
+class: middle
+
+# You are not the same developer twice
+
+- You are very likely to forget the implicit rules you set at some point.
+- Tests help for that, but sometimes we overdo it.
+- Explicit, again, is usually better.
+
+???
+
+Explicir obsession leads to a problem with exceptions. They're implicit quite often.
+
+---
+
+class: middle
+
+
+# Letting go of unexceptional exceptions
+
+- Exceptions are the rule, they're not exceptional.
+- Idiomatic ruby promotes them and you should handle them in external libraries.
+- Consider never throwing them in you're code unless they're true exceptions.
+- Use Either, Maybe and Try instead.
+
+???
+
+You don't have to use all things in your language. Be critical of features.
+
+---
+
+class: middle
+
+# Either, an object that can be
+# Right (Everything's OK)
+# or Left (something failed)
+
+```ruby
+accept_even = -> input {
+  input.even? ? Right(input) : Left("Odd number")
+}
+accept_even.call(2) # Right(2)
+accept_even.call(3) # Left("Odd number")
+```
+
+???
+
+Either is a result, I use it a lot. My team hated me at first. There are other two common options, Maybe.
+
+---
+
+class: middle
+
+The object contains the indication of the error. If it's a right you can continue transforming the contents of the Right.
+
+```ruby
+Right(2).bind -> input {Right(input*2)} # Right(4)
+Right(2).fmap -> input { input*2 } # Right(4)
+
+# Multiplied by two run because it was a Right
+# so processing continued.
+# You can attach/bind to the content's of the right.
+
+Left(:error).bind -> input {input*2} # Left(:error)
+# Nothing happened because it was a left, something that failed
+# so processing cannot continue.
+# But you can handle the error.
+Left(:error).or(Right(0)) # Right(0)
+```
+
+???
+
+This helps you write the 'happy path' quickly but avoiding initial errors on the regular path. You don't transform something that isn't a good result.
+
+---
+
+class: middle
+
+# If you don't have a meaningful error you can use Maybe
+- You have as a result something or nothing at all.
+- You can only attach to the contents of the box if you have something.
+- Sort of if/else.
+
+```ruby
+Maybe(2) # Some(2) like Right(2)
+Maybe(nil) # None, similar to left without the detail
+Maybe(2).bind(multiply_by_two) # Some(4)
+Maybe(nil).or(99) # 99
+```
+
+???
+
+Super useful to prevent yourself from nils. A high level None is probably better. Eliminates many ifs. Is better than the safe operator because it can coexist with eithers.
+
+---
+
+class: middle
+
+# I don't get it. Why should I use Either? ¬¬
+
+
+---
+
+class: middle
+
+## Eithers are explicit about the variability of the type/nature of the result
+- you don't care about a deeply hidden exception crashing things.
+- when you get used to it you get less runtime errors.
+- makes you more aware of your types: dynamic typing doens't mean no types.
+- you write the happy path but things don't crash that easily on the unhappy one.
+
+???
+
+Small additions that add progressive benefits. It's like working out. The object provides an API for composition, you can usually get without loops.
+
+---
+class: middle
+
+# Actual example:
+
+```ruby
+User.find( params[:id] )
+	.bind(-> user { user.to_json })
+	.or([404,{},'not_found'}
+	# If I forget this `or` there's no exception.
+```
+
+But no exception means I will return something unexpected!
+
+Idea: Fix it with boundary checks:
+
+```
+raise "Bad result" unless result.is_a? MyResult
+```
+
+???
+
+Think abstract, be aware of the types at the boundary. Can you use small classes to express type contracts in your code. Controllers probably should be only about HTTP.
+
+---
+
+class: middle
+
+# Enhancing mental clarity with bottom up code
+
+- Separate parts of the code not through methods within the same class but through isolated chunks.
+- Use lambdas, singleton objects or class methods.
+
+??
+
+Let's structure business logic apart from transport logic.
+Make code pure. Keeps things focused.
+
+
+---
+
+
+class: middle
+
+
+## Thumb rule for more functional Ruby: If you are using @vars you are problably not doing isolated funtional parts.
+
+???
+
+Instace vars are still common in limited cases. Watch out for overuse.
+
+
+---
+
+class: middle
+
+Let's write the bottom part of the code:
+
+```ruby
+container = {}
+
+container[:validate_id_format] = -> id {
+	if id.to_s =~ /\d*/
+		Right(id.to_i)
+	else
+		Left("Expected a number as id)
+	end
+}
+
+container[:authorize_user] = -> id {
+	if id == 5
+		Right(id)
+	else
+		Left("You don't have access to user #{id}")
+	end
+}
+
+container[:find_user] = -> id {
+	# Query the User class which may return nil
+	# We use Maybe converting nil -> None to indicate absence
+	Maybe(User.find(id)).or("Bad user id")
+}
+```
+
+???
+
+This is not the only way, the concept is just to put small pieces apart so that you can replace them. Depend on concept or abstractions, try to ignore the implementation and mind only the contract.
+
+---
+
+class: middle
+
+### Put things together:
+
+```ruby
+RetrieveUser = Dry.Transaction(container: container) do
+	step :validate_id_format
+	step :authorize_user
+	step :find_user
+end
+```
+
+- This is where someone in the future will begin reading.
+- You can replace something in the container for tests.
+- If you are a little strict you'll promote that most tests are unit tests.
+- The wiring of steps is implicit but common and reliable.
+- You can read this, every big block of business logic is described as a set of steps.
+
+???
+
+Connect things. Be explicit about steps and order, promote a way to understand code not through MVC convention but actual code where things are wired together.
+
+---
+
+class: middle
+
+### What I want you to take out of this
+
+- It's just Ruby. Explore more gems that work without Rails.
+- Most Rubyist use way too much dependencies when smart functional chaining will suffice.
+- At some point dependencies bring more cost that benefit, choose wisely.
+- How can lambdas/blocks be useful in your code?
+- Challenge asumptions about architecture, idiomacy, language features etc.
+- Explore alternatives before you consider using another language.
+- Consider another style for the code you'll have to maintain for years.
+- Check dry-rb.org and make sure you understand every single gem there!
+
+---
+
+layout: false
+class: middle, inverse, center
+
+# Thanks!
+
+@davidpelaez
+
+    </textarea>
+    <script>
+      var slideshow = remark.create({ highlightLanguage: 'javascript'});
+    </script>
+  </body>
+</html>
